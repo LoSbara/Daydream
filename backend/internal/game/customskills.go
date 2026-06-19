@@ -12,7 +12,7 @@ import (
 // SaveCustomSkills aggiunge nuove custom skill al personaggio (no duplicati per ID).
 func SaveCustomSkills(database *db.Client, charID string, newSkills []models.GMCustomSkill) {
 	// Prima carica le skill esistenti
-	results, err := database.Query(
+	qr, err := database.QueryOne(
 		"SELECT custom_skills FROM character WHERE id=$id",
 		map[string]any{"id": charID},
 	)
@@ -25,7 +25,7 @@ func SaveCustomSkills(database *db.Client, charID string, newSkills []models.GMC
 		CustomSkills []models.GMCustomSkill `json:"custom_skills"`
 	}
 	var chars []partial
-	if err := results[0].All(&chars); err != nil || len(chars) == 0 {
+	if err := qr.All(&chars); err != nil || len(chars) == 0 {
 		return
 	}
 

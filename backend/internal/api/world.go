@@ -12,7 +12,7 @@ import (
 func (h *Handler) GetWorldFlags(c *gin.Context) {
 	userID := auth.GetUserID(c)
 
-	results, err := h.DB.Query(
+	worldQR, err := h.DB.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid LIMIT 1",
 		map[string]any{"uid": userID},
 	)
@@ -21,7 +21,7 @@ func (h *Handler) GetWorldFlags(c *gin.Context) {
 		return
 	}
 	var chars []models.Character
-	if err := results[0].All(&chars); err != nil || len(chars) == 0 {
+	if err := worldQR.All(&chars); err != nil || len(chars) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "personaggio non trovato"})
 		return
 	}

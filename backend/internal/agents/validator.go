@@ -31,6 +31,11 @@ func NewValidator(database *db.Client) *Validator {
 // ValidateAsync avvia la validazione in background. Non blocca il turno.
 func (v *Validator) ValidateAsync(ctx context.Context, resp *models.GMResponse, state *models.FullState) {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[validator] panic recuperato: %v", r)
+			}
+		}()
 		score := v.score(resp, state)
 		if err := v.logScore(score); err != nil {
 			log.Printf("[validator] log fallito (turn %d): %v", score.TurnID, err)

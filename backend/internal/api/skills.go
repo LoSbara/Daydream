@@ -133,7 +133,7 @@ func (h *Handler) UpdateLoadout(c *gin.Context) {
 
 // loadCharAndSession carica Character e GameSession di un utente.
 func (h *Handler) loadCharAndSession(userID string) (*models.Character, *models.GameSession, error) {
-	results, err := h.DB.Query(
+	charQR, err := h.DB.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -141,11 +141,11 @@ func (h *Handler) loadCharAndSession(userID string) (*models.Character, *models.
 		return nil, nil, err
 	}
 	var char models.Character
-	if err := results[0].First(&char); err != nil {
+	if err := charQR.First(&char); err != nil {
 		return nil, nil, err
 	}
 
-	results, err = h.DB.Query(
+	sessQR, err := h.DB.QueryOne(
 		"SELECT * FROM game_session WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -153,7 +153,7 @@ func (h *Handler) loadCharAndSession(userID string) (*models.Character, *models.
 		return nil, nil, err
 	}
 	var sess models.GameSession
-	if err := results[0].First(&sess); err != nil {
+	if err := sessQR.First(&sess); err != nil {
 		return nil, nil, err
 	}
 

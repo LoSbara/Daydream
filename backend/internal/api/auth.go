@@ -32,7 +32,7 @@ func (h *Handler) Register(c *gin.Context) {
 	body.Username = strings.TrimSpace(strings.ToLower(body.Username))
 
 	// Verifica unicità username
-	results, err := h.DB.Query(
+	checkQR, err := h.DB.QueryOne(
 		"SELECT id FROM user WHERE username = $username",
 		map[string]any{"username": body.Username},
 	)
@@ -41,7 +41,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 	var existing []User
-	if err := results[0].All(&existing); err == nil && len(existing) > 0 {
+	if err := checkQR.All(&existing); err == nil && len(existing) > 0 {
 		conflict(c, "username già in uso")
 		return
 	}
@@ -54,7 +54,7 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	// Crea utente
-	results, err = h.DB.Query(
+	createQR, err := h.DB.QueryOne(
 		`CREATE user CONTENT {
 			username: $username,
 			password_hash: $password_hash,
@@ -71,7 +71,7 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	var user User
-	if err := results[0].First(&user); err != nil {
+	if err := createQR.First(&user); err != nil {
 		internalError(c, err)
 		return
 	}
@@ -104,7 +104,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	body.Username = strings.TrimSpace(strings.ToLower(body.Username))
 
-	results, err := h.DB.Query(
+	loginQR, err := h.DB.QueryOne(
 		"SELECT id, username, password_hash, created_at, last_login FROM user WHERE username = $username",
 		map[string]any{"username": body.Username},
 	)
@@ -120,7 +120,7 @@ func (h *Handler) Login(c *gin.Context) {
 		CreatedAt    string  `json:"created_at"`
 		LastLogin    *string `json:"last_login,omitempty"`
 	}
-	if err := results[0].First(&raw); err != nil {
+	if err := loginQR.First(&raw); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			unauthorized(c, "credenziali non valide")
 			return
@@ -187,7 +187,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 func (h *Handler) Me(c *gin.Context) {
 	userID := auth.GetUserID(c)
 
-	results, err := h.DB.Query(
+	meQR, err := h.DB.QueryOne(
 		"SELECT id, username, created_at, last_login FROM user WHERE id = type::record($user_id)",
 		map[string]any{"user_id": userID},
 	)
@@ -197,7 +197,7 @@ func (h *Handler) Me(c *gin.Context) {
 	}
 
 	var user User
-	if err := results[0].First(&user); err != nil {
+	if err := meQR.First(&user); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			unauthorized(c, "utente non trovato")
 			return

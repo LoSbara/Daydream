@@ -112,7 +112,7 @@ func (s *Seeder) Seed(ctx context.Context) error {
 }
 
 func (s *Seeder) exists(id string) (bool, error) {
-	results, err := s.db.Query(
+	qr, err := s.db.QueryOne(
 		"SELECT id FROM knowledge_base WHERE id = type::record('knowledge_base', $id)",
 		map[string]any{"id": id},
 	)
@@ -120,7 +120,7 @@ func (s *Seeder) exists(id string) (bool, error) {
 		return false, err
 	}
 	var rows []map[string]any
-	if err := results[0].All(&rows); err != nil {
+	if err := qr.All(&rows); err != nil {
 		return false, nil
 	}
 	return len(rows) > 0, nil

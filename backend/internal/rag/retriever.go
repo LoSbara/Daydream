@@ -56,7 +56,7 @@ func (r *Retriever) vectorSearch(ctx context.Context, query string, limit int) [
 		vec[i] = v
 	}
 
-	results, err := r.db.Query(
+	qr, err := r.db.QueryOne(
 		fmt.Sprintf(`SELECT id, title, content, category,
 			vector::similarity::cosine(embedding, $vec) AS score
 			FROM knowledge_base
@@ -69,13 +69,13 @@ func (r *Retriever) vectorSearch(ctx context.Context, query string, limit int) [
 	}
 
 	var entries []KBEntry
-	_ = results[0].All(&entries)
+	_ = qr.All(&entries)
 	return entries
 }
 
 // fulltextSearch esegue BM25 search sull'indice testuale.
 func (r *Retriever) fulltextSearch(ctx context.Context, query string, limit int) []KBEntry {
-	results, err := r.db.Query(
+	ftQR, err := r.db.QueryOne(
 		fmt.Sprintf(`SELECT id, title, content, category,
 			search::score(0) AS score
 			FROM knowledge_base
@@ -89,7 +89,7 @@ func (r *Retriever) fulltextSearch(ctx context.Context, query string, limit int)
 	}
 
 	var entries []KBEntry
-	_ = results[0].All(&entries)
+	_ = ftQR.All(&entries)
 	return entries
 }
 

@@ -32,7 +32,7 @@ func (h *Handler) Chat(c *gin.Context) {
 	}
 
 	// Carica l'ID del personaggio
-	results, err := h.DB.Query(
+	charRefQR, err := h.DB.QueryOne(
 		"SELECT id FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -43,7 +43,7 @@ func (h *Handler) Chat(c *gin.Context) {
 	var charRef struct {
 		ID string `json:"id"`
 	}
-	if err := results[0].First(&charRef); err != nil {
+	if err := charRefQR.First(&charRef); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			c.JSON(http.StatusPreconditionRequired, gin.H{"error": "crea prima un personaggio"})
 			return
@@ -88,7 +88,7 @@ func (h *Handler) GetState(c *gin.Context) {
 	userID := auth.GetUserID(c)
 
 	// Character
-	results, err := h.DB.Query(
+	charQR, err := h.DB.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -97,7 +97,7 @@ func (h *Handler) GetState(c *gin.Context) {
 		return
 	}
 	var char models.Character
-	if err := results[0].First(&char); err != nil {
+	if err := charQR.First(&char); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "nessun personaggio trovato"})
 			return
@@ -107,7 +107,7 @@ func (h *Handler) GetState(c *gin.Context) {
 	}
 
 	// Inventory
-	results, err = h.DB.Query(
+	invQR, err := h.DB.QueryOne(
 		"SELECT * FROM inventory WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -116,13 +116,13 @@ func (h *Handler) GetState(c *gin.Context) {
 		return
 	}
 	var inv models.Inventory
-	if err := results[0].First(&inv); err != nil {
+	if err := invQR.First(&inv); err != nil {
 		internalError(c, err)
 		return
 	}
 
 	// Session
-	results, err = h.DB.Query(
+	sessQR, err := h.DB.QueryOne(
 		"SELECT * FROM game_session WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -131,7 +131,7 @@ func (h *Handler) GetState(c *gin.Context) {
 		return
 	}
 	var sess models.GameSession
-	if err := results[0].First(&sess); err != nil {
+	if err := sessQR.First(&sess); err != nil {
 		internalError(c, err)
 		return
 	}

@@ -2,7 +2,6 @@ package game
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"daydream/internal/agents"
@@ -131,12 +130,27 @@ func (e *Engine) ProcessTurn(ctx context.Context, job queue.TurnJob) {
 		stateUpdateEvents = applyStateUpdates(state, gmResponse.StateUpdates, e.skills)
 	}
 	if gmResponse.ContextMemo != "" {
-		state.Session.ContextMemo = gmResponse.ContextMemo
+		memo := gmResponse.ContextMemo
+		if len(memo) > 8000 {
+			memo = memo[:8000]
+		}
+		state.Session.ContextMemo = memo
 	}
 	if len(gmResponse.WorldFlags) > 0 {
 		UpsertWorldFlags(e.db, state.Character.ID, gmResponse.WorldFlags)
 	}
 	if len(gmResponse.CustomSkills) > 0 {
+		// Dedup: elimina duplicati all'interno della stessa risposta GM prima di salvare
+		seen := map[string]bool{}
+		unique := gmResponse.CustomSkills[:0]
+		for _, s := range gmResponse.CustomSkills {
+			if s.ID != "" && !seen[s.ID] {
+				seen[s.ID] = true
+				unique = append(unique, s)
+			}
+		}
+		gmResponse.CustomSkills = unique
+
 		SaveCustomSkills(e.db, state.Character.ID, gmResponse.CustomSkills)
 		// Aggiorna il personaggio in-memory con le nuove skill
 		if state.Character.CustomSkills == nil {
@@ -341,262 +355,6 @@ func (e *Engine) callLLMStreaming(ctx context.Context, msgs []llmMessage, tokenC
 	return fullBuf.String(), narrativeBuf.String(), nil
 }
 
-// narrativeExtractor è una FSM che estrae il valore del campo "narrative" da un JSON stream.
-type narrativeExtractor struct {
-	buf     strings.Builder
-	state   int  // 0=searching, 1=in_narrative, 2=done
-	escaped bool
-}
-
-const narrativeKey = `"narrative":"`
-
-func (ne *narrativeExtractor) feed(token string) string {
-	if ne.state == 2 {
-		return ""
-	}
-
-	var out strings.Builder
-	for _, ch := range token {
-		ne.buf.WriteRune(ch)
-
-		switch ne.state {
-		case 0: // searching for "narrative":"
-			if strings.HasSuffix(ne.buf.String(), narrativeKey) {
-				ne.state = 1
-			}
-
-		case 1: // inside the narrative string value
-			if ne.escaped {
-				ne.escaped = false
-				// Emetti il carattere escaped (es. \n → newline, \" → virgolette)
-				switch ch {
-				case 'n':
-					out.WriteRune('\n')
-				case 't':
-					out.WriteRune('\t')
-				case '"':
-					out.WriteRune('"')
-				case '\\':
-					out.WriteRune('\\')
-				default:
-					out.WriteRune(ch)
-				}
-			} else if ch == '\\' {
-				ne.escaped = true
-			} else if ch == '"' {
-				ne.state = 2 // fine del valore narrative
-			} else {
-				out.WriteRune(ch)
-			}
-		}
-	}
-
-	return out.String()
-}
-
-// parseGMResponse tenta di deserializzare il JSON del GM. Pulisce il JSON da
-// eventuali markdown code block (```json...```).
-func parseGMResponse(raw string) (*models.GMResponse, error) {
-	raw = strings.TrimSpace(raw)
-
-	// Rimuovi markdown code block se presente
-	if strings.HasPrefix(raw, "```") {
-		lines := strings.Split(raw, "\n")
-		if len(lines) >= 2 {
-			// Rimuovi prima e ultima riga (``` e ```)
-			lines = lines[1:]
-			if lines[len(lines)-1] == "```" {
-				lines = lines[:len(lines)-1]
-			}
-			raw = strings.Join(lines, "\n")
-		}
-	}
-
-	// Trova l'inizio del JSON
-	start := strings.IndexByte(raw, '{')
-	end := strings.LastIndexByte(raw, '}')
-	if start == -1 || end == -1 || end <= start {
-		return nil, fmt.Errorf("nessun oggetto JSON trovato nella risposta")
-	}
-	raw = raw[start : end+1]
-
-	var resp models.GMResponse
-	if err := json.Unmarshal([]byte(raw), &resp); err != nil {
-		return nil, fmt.Errorf("JSON parse: %w", err)
-	}
-	if resp.Narrative == "" {
-		return nil, fmt.Errorf("campo 'narrative' mancante o vuoto")
-	}
-
-	return &resp, nil
-}
-
-// applyStateUpdates applica gli aggiornamenti di stato proposti dal GM allo stato in-memory.
-func applyStateUpdates(state *models.FullState, upd *models.StateUpdate, skills *SkillRegistry) []PostEvent {
-	if upd == nil {
-		return nil
-	}
-	var events []PostEvent
-
-	if upd.Player != nil {
-		p := upd.Player
-		if p.Stats != nil {
-			applyStatsUpdate(state, p.Stats)
-		}
-		if p.StatusEffects != nil {
-			state.Character.StatusEffects = p.StatusEffects
-		}
-		if p.Reputation != nil {
-			state.Character.Reputation = *p.Reputation
-		}
-	}
-
-	if upd.GameState != nil {
-		ApplyGameState(state.Session, upd.GameState)
-	}
-
-	if upd.Quests != nil {
-		evts := applyQuestUpdate(state, upd.Quests, skills)
-		events = append(events, evts...)
-	}
-
-	return events
-}
-
-// normalizeSession garantisce che tutti i campi slice della sessione siano
-// inizializzati come array vuoti (non nil) prima del salvataggio su SurrealDB.
-// SurrealDB rifiuta nil/NONE su campi definiti come TYPE array.
-func normalizeSession(sess *models.GameSession) {
-	if sess.SkillLoadout == nil {
-		sess.SkillLoadout = []string{}
-	}
-	if sess.SessionLog == nil {
-		sess.SessionLog = []models.SessionMessage{}
-	}
-	if sess.QuestsActive == nil {
-		sess.QuestsActive = []models.Quest{}
-	}
-	if sess.QuestsCompleted == nil {
-		sess.QuestsCompleted = []models.Quest{}
-	}
-}
-
-// applyQuestUpdate gestisce start/complete/fail/progress delle quest.
-// Restituisce PostEvent per level_up da exp ricompensa.
-func applyQuestUpdate(state *models.FullState, upd *models.QuestsStateUpdate, skills *SkillRegistry) []PostEvent {
-	if upd == nil {
-		return nil
-	}
-	sess := state.Session
-
-	var events []PostEvent
-
-	// Start: aggiungi nuova quest
-	if upd.Start != nil {
-		upd.Start.Status = "active"
-		upd.Start.StartedAt = sess.TurnID
-		sess.QuestsActive = append(sess.QuestsActive, *upd.Start)
-	}
-
-	// Complete / Fail
-	for i := range sess.QuestsActive {
-		q := &sess.QuestsActive[i]
-		if q.Status != "active" {
-			continue
-		}
-
-		if upd.Complete != "" && q.ID == upd.Complete {
-			q.Status = "completed"
-			q.CompletedAt = sess.TurnID
-			evts := applyQuestRewards(state, q, skills)
-			events = append(events, evts...)
-			sess.QuestsCompleted = append(sess.QuestsCompleted, *q)
-		}
-
-		if upd.Fail != "" && q.ID == upd.Fail {
-			q.Status = "failed"
-			q.CompletedAt = sess.TurnID
-			sess.QuestsCompleted = append(sess.QuestsCompleted, *q)
-		}
-	}
-
-	// Rimuovi da active quelle completate/fallite
-	active := sess.QuestsActive[:0]
-	for _, q := range sess.QuestsActive {
-		if q.Status == "active" {
-			active = append(active, q)
-		}
-	}
-	sess.QuestsActive = active
-
-	// Progress
-	for _, prog := range upd.Progress {
-		for i := range sess.QuestsActive {
-			if sess.QuestsActive[i].ID != prog.QuestID {
-				continue
-			}
-			q := &sess.QuestsActive[i]
-			if prog.ObjIndex >= 0 && prog.ObjIndex < len(q.Objectives) {
-				obj := &q.Objectives[prog.ObjIndex]
-				obj.Current = Clamp(obj.Current+prog.Delta, 0, obj.Required)
-				obj.Done = obj.Current >= obj.Required
-			}
-		}
-	}
-
-	return events
-}
-
-// applyQuestRewards applica gold, exp e item della quest al personaggio.
-func applyQuestRewards(state *models.FullState, q *models.Quest, skills *SkillRegistry) []PostEvent {
-	_ = skills
-	var events []PostEvent
-
-	if q.Rewards.Gold > 0 {
-		state.Character.Money += q.Rewards.Gold
-	}
-
-	if q.Rewards.Exp > 0 {
-		ev := applyExp(state.Character, q.Rewards.Exp)
-		if ev != nil {
-			events = append(events, *ev)
-		}
-	}
-
-	for _, item := range q.Rewards.Items {
-		state.Inventory.Bag = append(state.Inventory.Bag, item)
-	}
-
-	return events
-}
-
-func applyStatsUpdate(state *models.FullState, s *models.StatsUpdate) {
-	if s.HP != nil {
-		if s.HP.Current != nil {
-			state.Character.Stats.HP.Current = Clamp(*s.HP.Current, 0, state.Character.Stats.HP.Max)
-		}
-		if s.HP.Max != nil {
-			state.Character.Stats.HP.Max = *s.HP.Max
-		}
-	}
-	if s.MP != nil {
-		if s.MP.Current != nil {
-			state.Character.Stats.MP.Current = Clamp(*s.MP.Current, 0, state.Character.Stats.MP.Max)
-		}
-		if s.MP.Max != nil {
-			state.Character.Stats.MP.Max = *s.MP.Max
-		}
-	}
-	if s.STM != nil {
-		if s.STM.Current != nil {
-			state.Character.Stats.STM.Current = Clamp(*s.STM.Current, 0, state.Character.Stats.STM.Max)
-		}
-		if s.STM.Max != nil {
-			state.Character.Stats.STM.Max = *s.STM.Max
-		}
-	}
-}
-
 // preProcess gestisce le operazioni pre-turno: decremento cooldown e tick degli status effect.
 // Ritorna PostEvent per morti da veleno/emorragia.
 func (e *Engine) preProcess(state *models.FullState) []PostEvent {
@@ -663,7 +421,7 @@ func tickStatusEffect(stats *models.Stats, se models.StatusEffect) {
 // loadState carica lo stato completo del personaggio di un utente.
 func (e *Engine) loadState(userID string) (*models.FullState, error) {
 	// 1. Character
-	results, err := e.db.Query(
+	charQR, err := e.db.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -671,7 +429,7 @@ func (e *Engine) loadState(userID string) (*models.FullState, error) {
 		return nil, fmt.Errorf("load character: %w", err)
 	}
 	var char models.Character
-	if err := results[0].First(&char); err != nil {
+	if err := charQR.First(&char); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return nil, fmt.Errorf("nessun personaggio trovato")
 		}
@@ -679,7 +437,7 @@ func (e *Engine) loadState(userID string) (*models.FullState, error) {
 	}
 
 	// 2. Inventory
-	results, err = e.db.Query(
+	invQR, err := e.db.QueryOne(
 		"SELECT * FROM inventory WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -687,12 +445,12 @@ func (e *Engine) loadState(userID string) (*models.FullState, error) {
 		return nil, fmt.Errorf("load inventory: %w", err)
 	}
 	var inv models.Inventory
-	if err := results[0].First(&inv); err != nil {
+	if err := invQR.First(&inv); err != nil {
 		return nil, fmt.Errorf("decode inventory: %w", err)
 	}
 
 	// 3. Game session
-	results, err = e.db.Query(
+	sessQR, err := e.db.QueryOne(
 		"SELECT * FROM game_session WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -700,7 +458,7 @@ func (e *Engine) loadState(userID string) (*models.FullState, error) {
 		return nil, fmt.Errorf("load session: %w", err)
 	}
 	var sess models.GameSession
-	if err := results[0].First(&sess); err != nil {
+	if err := sessQR.First(&sess); err != nil {
 		return nil, fmt.Errorf("decode session: %w", err)
 	}
 

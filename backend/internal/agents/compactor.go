@@ -28,7 +28,14 @@ func (c *Compactor) CompactIfNeeded(ctx context.Context, sessionID, memo string)
 		return
 	}
 	log.Printf("[compactor] memo lungo %d char, avvio compaction per session %s", len(memo), sessionID)
-	go c.compact(context.Background(), sessionID, memo)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[compactor] panic recuperato per session %s: %v", sessionID, r)
+			}
+		}()
+		c.compact(context.Background(), sessionID, memo)
+	}()
 }
 
 func (c *Compactor) compact(ctx context.Context, sessionID, memo string) {

@@ -125,6 +125,20 @@ func (c *Client) Query(sql string, vars map[string]any) ([]QueryResult, error) {
 	return results, nil
 }
 
+// QueryOne esegue una singola istruzione SurrealQL e ritorna il suo QueryResult.
+// A differenza di Query(), garantisce che l'accesso al primo elemento non causi panic
+// se SurrealDB restituisce un array vuoto per qualsiasi ragione.
+func (c *Client) QueryOne(sql string, vars map[string]any) (QueryResult, error) {
+	results, err := c.Query(sql, vars)
+	if err != nil {
+		return QueryResult{}, err
+	}
+	if len(results) == 0 {
+		return QueryResult{Status: "OK", Result: json.RawMessage("[]")}, nil
+	}
+	return results[0], nil
+}
+
 // Exec è una scorciatoia per query che non restituiscono dati significativi (UPDATE, DELETE, DEFINE...).
 func (c *Client) Exec(sql string, vars map[string]any) error {
 	results, err := c.Query(sql, vars)
@@ -184,9 +198,9 @@ func (c *Client) CreateRecord(table string, data any, result any) error {
 	}
 
 	sql := fmt.Sprintf("CREATE %s CONTENT %s;", table, string(contentBytes))
-	results, err := c.Query(sql, nil)
+	qr, err := c.QueryOne(sql, nil)
 	if err != nil {
 		return err
 	}
-	return results[0].First(result)
+	return qr.First(result)
 }

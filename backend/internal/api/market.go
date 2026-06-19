@@ -215,7 +215,7 @@ func (h *Handler) loadCharInvSession(userID string) (*models.Character, *models.
 		return nil, nil, nil, err
 	}
 
-	results, err := h.DB.Query(
+	invQR, err := h.DB.QueryOne(
 		"SELECT * FROM inventory WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -223,7 +223,7 @@ func (h *Handler) loadCharInvSession(userID string) (*models.Character, *models.
 		return nil, nil, nil, err
 	}
 	var inv models.Inventory
-	if err := results[0].First(&inv); err != nil {
+	if err := invQR.First(&inv); err != nil {
 		return nil, nil, nil, err
 	}
 

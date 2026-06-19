@@ -136,7 +136,7 @@ func (h *Handler) UnequipItem(c *gin.Context) {
 
 // loadCharAndInventory carica Character e Inventory di un utente.
 func (h *Handler) loadCharAndInventory(userID string) (*models.Character, *models.Inventory, error) {
-	results, err := h.DB.Query(
+	charQR, err := h.DB.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -144,11 +144,11 @@ func (h *Handler) loadCharAndInventory(userID string) (*models.Character, *model
 		return nil, nil, err
 	}
 	var char models.Character
-	if err := results[0].First(&char); err != nil {
+	if err := charQR.First(&char); err != nil {
 		return nil, nil, err
 	}
 
-	results, err = h.DB.Query(
+	invQR, err := h.DB.QueryOne(
 		"SELECT * FROM inventory WHERE character_id = $cid",
 		map[string]any{"cid": char.ID},
 	)
@@ -156,7 +156,7 @@ func (h *Handler) loadCharAndInventory(userID string) (*models.Character, *model
 		return nil, nil, err
 	}
 	var inv models.Inventory
-	if err := results[0].First(&inv); err != nil {
+	if err := invQR.First(&inv); err != nil {
 		return nil, nil, err
 	}
 

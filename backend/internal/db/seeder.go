@@ -41,13 +41,13 @@ func (c *Client) seedSkills() error {
 		}
 
 		// Controlla se esiste già
-		results, err := c.Query("SELECT id FROM skill_catalog WHERE id = type::record('skill_catalog', $sid)",
+		qr, err := c.QueryOne("SELECT id FROM skill_catalog WHERE id = type::record('skill_catalog', $sid)",
 			map[string]any{"sid": id})
 		if err != nil {
 			return fmt.Errorf("check skill %s: %w", id, err)
 		}
 		var existing []map[string]any
-		if results[0].All(&existing) == nil && len(existing) > 0 {
+		if qr.All(&existing) == nil && len(existing) > 0 {
 			skipped++
 			continue
 		}

@@ -36,6 +36,11 @@ func NewContentGenerator(database *db.Client, provider llm.Provider, embedder em
 // GenerateAsync avvia la generazione in background per ogni richiesta. Non blocca il turno.
 func (cg *ContentGenerator) GenerateAsync(ctx context.Context, requests []models.ContentGenRequest, charID string) {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[content-gen] panic recuperato: %v", r)
+			}
+		}()
 		for _, req := range requests {
 			if req.Subject == "" || req.Type == "" {
 				continue
@@ -157,7 +162,7 @@ Scrivi un documento completo e dettagliato adatto alla Knowledge Base.`, typeDes
 }
 
 func (cg *ContentGenerator) entryExists(id string) (bool, error) {
-	results, err := cg.db.Query(
+	qr, err := cg.db.QueryOne(
 		"SELECT id FROM knowledge_base WHERE id = type::record('knowledge_base', $id)",
 		map[string]any{"id": id},
 	)
@@ -165,7 +170,7 @@ func (cg *ContentGenerator) entryExists(id string) (bool, error) {
 		return false, err
 	}
 	var rows []map[string]any
-	if err := results[0].All(&rows); err != nil {
+	if err := qr.All(&rows); err != nil {
 		return false, nil
 	}
 	return len(rows) > 0, nil

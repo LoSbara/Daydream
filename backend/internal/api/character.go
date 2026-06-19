@@ -77,7 +77,7 @@ func (h *Handler) CreateCharacter(c *gin.Context) {
 	}
 
 	// Controlla se esiste già un personaggio
-	results, err := h.DB.Query(
+	existQR, err := h.DB.QueryOne(
 		"SELECT id FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -86,7 +86,7 @@ func (h *Handler) CreateCharacter(c *gin.Context) {
 		return
 	}
 	var existing []struct{ ID string `json:"id"` }
-	if results[0].All(&existing) == nil && len(existing) > 0 {
+	if existQR.All(&existing) == nil && len(existing) > 0 {
 		conflict(c, "hai già un personaggio attivo")
 		return
 	}
@@ -172,7 +172,7 @@ func (h *Handler) CreateCharacter(c *gin.Context) {
 func (h *Handler) GetCharacter(c *gin.Context) {
 	userID := auth.GetUserID(c)
 
-	results, err := h.DB.Query(
+	getCharQR, err := h.DB.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -182,7 +182,7 @@ func (h *Handler) GetCharacter(c *gin.Context) {
 	}
 
 	var char models.Character
-	if err := results[0].First(&char); err != nil {
+	if err := getCharQR.First(&char); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "nessun personaggio trovato"})
 			return
@@ -216,7 +216,7 @@ func (h *Handler) AllocateStats(c *gin.Context) {
 		return
 	}
 
-	results, err := h.DB.Query(
+	statsQR, err := h.DB.QueryOne(
 		"SELECT * FROM character WHERE user_id = $uid",
 		map[string]any{"uid": userID},
 	)
@@ -225,7 +225,7 @@ func (h *Handler) AllocateStats(c *gin.Context) {
 		return
 	}
 	var char models.Character
-	if err := results[0].First(&char); err != nil {
+	if err := statsQR.First(&char); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "personaggio non trovato"})
 		return
 	}

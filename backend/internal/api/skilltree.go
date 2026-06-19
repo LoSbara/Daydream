@@ -14,13 +14,13 @@ import (
 // GET /api/character/skill-tree
 func (h *Handler) GetSkillTree(c *gin.Context) {
 	userID := auth.GetUserID(c)
-	results, err := h.DB.Query("SELECT * FROM character WHERE user_id=$uid LIMIT 1", map[string]any{"uid": userID})
+	qr, err := h.DB.QueryOne("SELECT * FROM character WHERE user_id=$uid LIMIT 1", map[string]any{"uid": userID})
 	if err != nil {
 		internalError(c, err)
 		return
 	}
 	var chars []models.Character
-	if err := results[0].All(&chars); err != nil || len(chars) == 0 {
+	if err := qr.All(&chars); err != nil || len(chars) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "personaggio non trovato"})
 		return
 	}
@@ -67,13 +67,13 @@ func (h *Handler) UnlockSkillTreeNode(c *gin.Context) {
 		return
 	}
 
-	results, err := h.DB.Query("SELECT * FROM character WHERE user_id=$uid LIMIT 1", map[string]any{"uid": userID})
+	qr, err := h.DB.QueryOne("SELECT * FROM character WHERE user_id=$uid LIMIT 1", map[string]any{"uid": userID})
 	if err != nil {
 		internalError(c, err)
 		return
 	}
 	var chars []models.Character
-	if err := results[0].All(&chars); err != nil || len(chars) == 0 {
+	if err := qr.All(&chars); err != nil || len(chars) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "personaggio non trovato"})
 		return
 	}
@@ -174,13 +174,13 @@ func (h *Handler) UpgradeCustomSkill(c *gin.Context) {
 		return
 	}
 
-	results, err := h.DB.Query("SELECT * FROM character WHERE user_id=$uid LIMIT 1", map[string]any{"uid": userID})
+	qr, err := h.DB.QueryOne("SELECT * FROM character WHERE user_id=$uid LIMIT 1", map[string]any{"uid": userID})
 	if err != nil {
 		internalError(c, err)
 		return
 	}
 	var chars []models.Character
-	if err := results[0].All(&chars); err != nil || len(chars) == 0 {
+	if err := qr.All(&chars); err != nil || len(chars) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "personaggio non trovato"})
 		return
 	}
