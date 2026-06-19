@@ -1,0 +1,86 @@
+[
+  {
+    "id": "world_daydream_intro",
+    "title": "Cos'è Daydream",
+    "category": "world_lore",
+    "content": "Daydream è un VRMMO full-dive di quinta generazione. I giocatori accedono tramite capsule di immersione neurale e vivono avventure in un mondo fantasy-tecnologico. Il gioco è noto per la sua difficoltà brutale, i suoi sistemi di progressione profondi e la sua narrativa emergente. La morte nel gioco comporta perdita di gold e respawn al Nexus. Non esiste PvP nelle safe zone. Daydream ha milioni di giocatori globali, ma solo i più determinati raggiungono i livelli avanzati."
+  },
+  {
+    "id": "world_nexus_city",
+    "title": "Il Nexus — Hub principale",
+    "category": "world_lore",
+    "content": "Il Nexus è la città-hub del gioco, il punto di partenza e di respawn per tutti i giocatori. È una metropoli caotica e affascinante, costruita su strati di tecnologia magica e architettura medievale. Contiene: il Quartiere dei Mercanti (negozi e aste), la Gilda dei Cacciatori (contratti e missioni), il Distretto delle Forge (potenziamento equipaggiamento), i Bagni del Rinnovamento (ripristino gratuito di HP/MP/STM), le Scuole di Magia (trainer di skill avanzate). Il Nexus è sempre safe_zone. Fuori dal Nexus iniziano le combat_zone e i dungeon."
+  },
+  {
+    "id": "world_combat_zones",
+    "title": "Zone di Combattimento",
+    "category": "world_lore",
+    "content": "Le combat_zone circondano il Nexus e scalano per difficoltà con la distanza. Le zone vicine (Piana di Ferro, Bosco delle Ombre) hanno nemici di livello 1-10. Le zone intermedie (Montagne Spezzate, Pianure della Cenere) vanno dal livello 10 al 25. Le zone lontane (Abisso Remoto, Fronte del Vuoto) sono per i veterani oltre il livello 30. Nelle combat_zone i nemici appaiono in modo semi-casuale con un sistema di tensione: più a lungo si resta, più aumenta la probabilità di incontri d'élite."
+  },
+  {
+    "id": "world_dungeons",
+    "title": "I Dungeon",
+    "category": "world_lore",
+    "content": "I dungeon sono strutture istanziate accessibili tramite portali nelle combat_zone. Ogni dungeon ha un boss finale, un set di nemici specifici e loot esclusivo. I dungeon si dividono in: Normali (1-5 stanze, boss di tier elite), Profondi (8-12 stanze, boss di tier boss), Raid (20+ stanze, per party da 4-8 giocatori). Nei dungeon il game_state è DUNGEON_EXPLORATION tra una stanza e l'altra, e DUNGEON_COMBAT durante gli scontri. Morire in un dungeon ejetta il giocatore fuori dall'istanza."
+  },
+  {
+    "id": "world_hunter_guild",
+    "title": "Gilda dei Cacciatori",
+    "category": "world_lore",
+    "content": "La Gilda dei Cacciatori è l'organizzazione principale che gestisce i contratti di caccia e le missioni. Ha cinque rank: Bronze (novizi), Silver, Gold, Platinum, Diamond (i migliori). I contratti di caccia sono missioni di eliminazione con target specifici (es. 'uccidi 10 Lupi Ferrosi nella Piana di Ferro'). Completare contratti aumenta la reputazione con la Gilda e fornisce ricompense in gold e materiali. I membri di alto rango hanno accesso a contratti speciali e dungeons esclusivi. Il master della Gilda è Varro Kael, un ex-guerriero umano con una cicatrice che gli attraversa il viso."
+  },
+  {
+    "id": "npc_varro_kael",
+    "title": "Varro Kael — Master della Gilda dei Cacciatori",
+    "category": "npc",
+    "content": "Varro Kael è il master della Gilda dei Cacciatori al Nexus. Aspetto: umano sui 50 anni, corporatura massiccia, cicatrice verticale sull'occhio sinistro (occhio di vetro), capelli grigi rasati ai lati. Personalità: pragmatico, diretto, non sopporta le scuse. Ha rispetto per chi dimostra coraggio, disdegno per chi sopravvaluta le proprie capacità. Backstory: fu uno dei primi esploratori di Daydream, perse il suo party nel dungeon Abissale. Ora gestisce la Gilda per evitare che altri facciano i suoi stessi errori. Dialogo tipico: 'I contratti non aspettano. O sei pronto o non lo sei.'"
+  },
+  {
+    "id": "npc_lira_marveth",
+    "title": "Lira Marveth — Mercante d'armi al Nexus",
+    "category": "npc",
+    "content": "Lira Marveth gestisce la bottega 'L'Arma Perfetta' nel Quartiere dei Mercanti del Nexus. Aspetto: elfa dai capelli rossi, sempre con grembiule da lavoro e lenti da ingrandimento sul capo. Personalità: esuberante, ama spiegare le proprietà di ogni arma in dettaglio, fa sconti ai clienti fissi ma aumenta i prezzi a chi tira sul prezzo. Specializzazione: armi per Mercenari e Ingegneri, ha sempre le ultime novità. Frase tipica: 'Questa lama ha ucciso 47 lupi della steppa. Lo so perché l'ho forgiata io. Fidati del ferro, non del venditore.'"
+  },
+  {
+    "id": "npc_chen_xiulan",
+    "title": "Chen Xiulan — Saggia delle Scuole di Magia",
+    "category": "npc",
+    "content": "Chen Xiulan è la direttrice delle Scuole di Magia del Nexus. Aspetto: donna anziana di corporatura minuta, capelli bianchi raccolti, occhi che brillano di luce arcana blu. Personalità: paziente, enigmatica, risponde spesso con domande anziché risposte dirette. Conosce la storia del mondo meglio di chiunque altro. È l'unica in grado di insegnare la Magia di Sigillo (skill leggendaria). Frase tipica: 'Il potere senza comprensione è solo distruzione ritardata.'"
+  },
+  {
+    "id": "mechanics_tactical_tension",
+    "title": "La Tension Tattica",
+    "category": "mechanics",
+    "content": "La Tension Tattica (TacticalTension) è un valore da 0 a 100 che misura l'intensità del combattimento. Sale ogni turno in combattimento (di base +10) e scende fuori combattimento. A 50+: i nemici diventano più aggressivi e possono usare mosse speciali. A 80+: entrata in modalità Overdrive per il giocatore (bonus ATK temporaneo). A 100: il nemico può tentare un attacco decisivo. La tension tattica si azzera quando il combattimento finisce. Il GM deve tenerla in conto quando narra le azioni del nemico."
+  },
+  {
+    "id": "mechanics_classes_overview",
+    "title": "Classi e Progressione",
+    "category": "mechanics",
+    "content": "Daydream ha 5 classi base: Mercenario (STR+, combattimento fisico diretto), Scout (DEX+AGI+, furtività e attacchi precisi), Mago (TEC+, magia elemental potente), Sacerdote (VIT+LUC+, guarigione e supporto), Ingegnere (STR+TEC, gadget e trappole meccaniche). Al livello 20 si sblocca la Sottoclasse (specializzazione della classe base). Al livello 40 si sblocca la Classe Avanzata (fusione di due percorsi). Le statistiche base influenzano: STR → danno fisico, DEX → precisione, AGI → schivata e velocità, TEC → danno magico e crafting, VIT → HP max e resistenza, LUC → drop rate e critici."
+  },
+  {
+    "id": "mechanics_status_effects",
+    "title": "Status Effect e Buff/Debuff",
+    "category": "mechanics",
+    "content": "I status effect possono essere buff (positivi) o debuff (negativi) e durano un numero definito di turni. Buff comuni: ATK (danno fisico aumentato), DEF (riduzione danno subito), REGEN (HP ripristinati ogni turno), HASTE (turno extra o azione aggiuntiva), SHIELD (assorbe danno). Debuff comuni: STUN (skip del turno del giocatore), POISON (HP persi ogni turno), BURN (HP persi, vulnerabile a danni magici), SLOW (azioni ridotte), BLIND (precisione ridotta). Il server applica i tag BUFF_<tipo>_<durata> e DEBUFF_<tipo>_<durata>."
+  },
+  {
+    "id": "world_piana_di_ferro",
+    "title": "Piana di Ferro",
+    "category": "zone",
+    "content": "La Piana di Ferro è la zona di combattimento più vicina al Nexus, adatta ai principianti (livelli 1-8). È una distesa di terreno arido con rocce ferrigne, piccoli canyon e rovi metallici nativi. Nemici tipici: Lupo Ferroso (normale, Lv1-3), Scorpione Ruggine (normale, Lv2-4), Colosso di Ferro Minore (elite, Lv5-6, boss della zona). La Piana ha un forte del contrabbando abbandonato che funge da dungeon iniziale: il 'Forte delle Ceneri' (3 stanze, boss: Capitano Fantasma della Ruggine). Il terreno è friabile: chi lo conosce può sfruttare coperture rocciose durante il combattimento."
+  },
+  {
+    "id": "world_bosco_ombre",
+    "title": "Bosco delle Ombre",
+    "category": "zone",
+    "content": "Il Bosco delle Ombre è una foresta densa a ovest del Nexus, livelli 5-12. La luce filtra a malapena tra i rami contorti. Nemici tipici: Lupo Spettrale (normale, Lv5-7), Albero Ambulante (normale, Lv8-9), Strega del Bosco (elite, Lv10-11). Il terreno oscuro aumenta la difficoltà di schivata per i giocatori senza skill di Percezione. Di notte (in-game) la probabilità di incontri raddoppia e appaiono nemici unici. Il dungeon principale è la Torre delle Radici (7 stanze, boss: la Grande Radice Antica, possesso di loot magici rari)."
+  },
+  {
+    "id": "world_economy",
+    "title": "Economia di Daydream",
+    "category": "world_lore",
+    "content": "La valuta di Daydream è il Gold. Si ottiene da: loot da nemici, contratti della Gilda, vendita di item, appraisal (valutazione) di item non identificati. Si spende per: equipaggiamento (negozi e aste), potenziamento armi (Forge), ricarica di consumabili, train di nuove skill dai master. Il mercato delle aste è gestito dal sistema di asta del Nexus: i giocatori possono mettere item all'asta con prezzo base e durata. Il gold non ha un tetto massimo ma i prezzi scalano esponenzialmente per item rari. MaxMoney (il massimo mai raggiunto) è tracciato negli action_counters come achievement."
+  }
+]

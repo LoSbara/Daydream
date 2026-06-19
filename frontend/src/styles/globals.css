@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Superfici */
+    --surface: 240 10% 4%;          /* #090910 — background principale */
+    --surface-subtle: 240 8% 7%;    /* #101018 — pannelli */
+    --surface-raised: 240 7% 11%;   /* #181820 — card, input */
+
+    /* Scale superfici (100=chiaro → 900=scuro) per componenti UI */
+    --surface-100: 220 20% 90%;
+    --surface-200: 220 15% 75%;
+    --surface-300: 220 12% 60%;
+    --surface-400: 240 10% 45%;
+    --surface-500: 240 8% 32%;
+    --surface-600: 240 8% 22%;
+    --surface-700: 240 9% 14%;
+    --surface-800: 240 10% 8%;
+
+    /* Bordi */
+    --border: 240 6% 18%;
+
+    /* Accent — blu-viola elettrico */
+    --accent: 245 80% 65%;          /* #6B5FDE */
+    --accent-hover: 245 80% 72%;
+    --accent-muted: 245 50% 30%;
+
+    /* Testo */
+    --text: 220 20% 92%;
+    --text-muted: 220 12% 60%;
+    --text-subtle: 220 10% 40%;
+
+    /* Barre di stato */
+    --hp:  0 75% 55%;               /* rosso */
+    --mp:  210 80% 55%;             /* blu */
+    --stm: 142 65% 48%;             /* verde */
+
+    /* Feedback */
+    --danger:  0 85% 60%;
+    --success: 142 70% 45%;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    background-color: hsl(var(--surface));
+    color: hsl(var(--text));
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar personalizzata */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--surface));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--text-subtle));
+  }
+}
+
+/* ============================================================
+   ANIMATION KEYFRAMES — AnimationLayer.jsx
+   ============================================================ */
+@keyframes screenShake {
+  10%, 90%  { transform: translate3d(-2px, 0, 0); }
+  20%, 80%  { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60%  { transform: translate3d(6px, 0, 0); }
+  100%      { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes overdrivePulse {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.6; }
+}
+
+/* react-grid-layout placeholder */
+.react-grid-item.react-grid-placeholder {
+  background: hsl(var(--accent-muted));
+  opacity: 0.3;
+  border-radius: 8px;
+}
+.react-resizable-handle {
+  opacity: 0.4;
+}
+.react-resizable-handle:hover {
+  opacity: 0.9;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           bg-accent text-white hover:bg-accent-hover active:scale-95
+           transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           text-text-muted hover:text-text hover:bg-surface-raised
+           transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .input {
+    @apply w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text
+           placeholder:text-text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent
+           transition-colors;
+  }
+  .card {
+    @apply rounded-lg border border-border bg-surface-subtle p-4;
+  }
+}

@@ -1,0 +1,54 @@
+services:
+
+  # ── Database ─────────────────────────────────────────────────────────────────
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    # DEV: memory (nessuna persistenza, schema rieseguito ad ogni avvio)
+    # PROD: command: start --log info --user ${SURREAL_USER} --pass ${SURREAL_PASS} surrealkv:/data/db
+    command: start --log info --user ${SURREAL_USER:-root} --pass ${SURREAL_PASS:-root} memory
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "/surreal", "isready", "--conn", "http://localhost:8000"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - daydream
+
+  # ── Backend Go ───────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      # Sovrascrivi le variabili che cambiano in Docker rispetto a .env locale
+      SURREAL_URL: ws://surrealdb:8000/rpc
+      PORT: "8080"
+      LOG_FORMAT: json
+    ports:
+      - "8080:8080"
+    depends_on:
+      surrealdb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - daydream
+
+  # ── Frontend React + nginx ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - daydream
+
+networks:
+  daydream:
+    driver: bridge

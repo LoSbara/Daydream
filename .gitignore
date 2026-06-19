@@ -1,0 +1,29 @@
+# ── Secrets ────────────────────────────────────────────────────
+.env
+backend/.env
+frontend/.env
+*.pem
+*.key
+
+# ── Go ──────────────────────────────────────────────────────────
+backend/tmp/
+backend/bin/
+*.test
+*.out
+
+# ── Node / React ─────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+dist/
+
+# ── OS ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editor ──────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
