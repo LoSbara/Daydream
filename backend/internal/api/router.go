@@ -95,6 +95,13 @@ func NewRouter(dbClient db.DBClient, playerQueue *queue.PlayerQueue, skills *gam
 		api.GET("/dungeon/map", h.DungeonMap)
 		api.POST("/dungeon/exit", h.ExitDungeon)
 
+		// Catalogo meccanico
+		api.GET("/catalog/classes", h.ListClasses)
+		api.GET("/catalog/monsters", h.ListMonsters)
+		api.GET("/catalog/diary", h.ListDiary)
+		api.GET("/catalog/bestiary", h.ListBestiary)
+		api.GET("/catalog/npcs", h.ListNPCs)
+
 		// World flags
 		api.GET("/world/flags", h.GetWorldFlags)
 

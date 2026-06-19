@@ -57,9 +57,38 @@ func ApplyBattleTags(tags []string, state *models.FullState, skills *SkillRegist
 				if parseErr != nil {
 					break
 				}
-				state.Session.CurrentEnemy.HP = Clamp(state.Session.CurrentEnemy.HP+delta, 0, state.Session.CurrentEnemy.MaxHP)
-				if state.Session.CurrentEnemy.HP <= 0 {
-					state.Session.CurrentEnemy.HP = 0
+				enemy := state.Session.CurrentEnemy
+				prevHP := enemy.HP
+				enemy.HP = Clamp(enemy.HP+delta, 0, enemy.MaxHP)
+				if enemy.HP <= 0 {
+					enemy.HP = 0
+				}
+				// Boss phase transition: solo su danni (delta < 0) a nemici tier "boss"
+				if delta < 0 && enemy.Tier == "boss" && enemy.MaxHP > 0 {
+					hpPct := enemy.HP * 100 / enemy.MaxHP
+					prevPct := prevHP * 100 / enemy.MaxHP
+					if enemy.CurrentPhase < 2 && hpPct <= 50 && prevPct > 50 {
+						enemy.CurrentPhase = 2
+						events = append(events, PostEvent{
+							Type:    "boss_phase_change",
+							Payload: map[string]any{"phase": 2, "enemy": enemy.Name},
+						})
+						state.Session.PendingNarrativeEvents = append(
+							state.Session.PendingNarrativeEvents,
+							fmt.Sprintf("[BOSS_PHASE_2] %s entra in Fase 2 — comportamento cambiato, nuovi attacchi attivi", enemy.Name),
+						)
+					}
+					if enemy.CurrentPhase < 3 && hpPct <= 25 && prevPct > 25 {
+						enemy.CurrentPhase = 3
+						events = append(events, PostEvent{
+							Type:    "boss_phase_change",
+							Payload: map[string]any{"phase": 3, "enemy": enemy.Name},
+						})
+						state.Session.PendingNarrativeEvents = append(
+							state.Session.PendingNarrativeEvents,
+							fmt.Sprintf("[BOSS_PHASE_3] %s entra in Fase 3 — modalità disperata, massima potenza", enemy.Name),
+						)
+					}
 				}
 			}
 

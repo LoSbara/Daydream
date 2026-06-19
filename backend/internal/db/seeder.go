@@ -14,6 +14,12 @@ func (c *Client) Seed() error {
 	if err := c.seedSkills(); err != nil {
 		return fmt.Errorf("seed skills: %w", err)
 	}
+	if err := c.seedCatalog("classes.json", "class_catalog"); err != nil {
+		return fmt.Errorf("seed classes: %w", err)
+	}
+	if err := c.seedCatalog("monsters.json", "monster_catalog"); err != nil {
+		return fmt.Errorf("seed monsters: %w", err)
+	}
 	return nil
 }
 
@@ -65,6 +71,59 @@ func (c *Client) seedSkills() error {
 	}
 
 	_ = skipped // log opzionale
+	_ = inserted
+	return nil
+}
+
+// seedCatalog carica un file JSON generico in una tabella SCHEMALESS.
+// Ogni record deve avere un campo "id" string. È idempotente: salta i record già presenti.
+func (c *Client) seedCatalog(filename, table string) error {
+	path := seedsPath(filename)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", filename, err)
+	}
+
+	var records []map[string]any
+	if err := json.Unmarshal(data, &records); err != nil {
+		return fmt.Errorf("parse %s: %w", filename, err)
+	}
+
+	inserted := 0
+	skipped := 0
+
+	for _, rec := range records {
+		id, ok := rec["id"].(string)
+		if !ok || id == "" {
+			continue
+		}
+
+		qr, err := c.QueryOne(
+			fmt.Sprintf("SELECT id FROM %s WHERE id = type::record('%s', $sid)", table, table),
+			map[string]any{"sid": id},
+		)
+		if err != nil {
+			return fmt.Errorf("check %s/%s: %w", table, id, err)
+		}
+		var existing []map[string]any
+		if qr.All(&existing) == nil && len(existing) > 0 {
+			skipped++
+			continue
+		}
+
+		recBytes, err := json.Marshal(rec)
+		if err != nil {
+			return err
+		}
+		sql := fmt.Sprintf("INSERT INTO %s %s;", table, string(recBytes))
+		if err := c.Exec(sql, nil); err != nil {
+			return fmt.Errorf("insert %s/%s: %w", table, id, err)
+		}
+		inserted++
+	}
+
+	_ = skipped
 	_ = inserted
 	return nil
 }

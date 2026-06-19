@@ -143,3 +143,45 @@ DEFINE FIELD IF NOT EXISTS skill_tree_unlocks    ON character TYPE array DEFAULT
 
 -- CUSTOM SKILLS (abilità narrative concesse dal GM)
 DEFINE FIELD IF NOT EXISTS custom_skills ON character TYPE array DEFAULT [];
+
+-- ============================================================
+-- CATALOGHI MECCANICI (seeded all'avvio)
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS class_catalog SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS monster_catalog SCHEMALESS;
+
+-- ============================================================
+-- GIORNALE DI VIAGGIO — luoghi visitati dal personaggio
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS travel_diary SCHEMALESS;
+DEFINE FIELD IF NOT EXISTS character_id ON travel_diary TYPE string;
+DEFINE FIELD IF NOT EXISTS location     ON travel_diary TYPE string;
+DEFINE FIELD IF NOT EXISTS note         ON travel_diary TYPE string DEFAULT "";
+DEFINE FIELD IF NOT EXISTS created_at   ON travel_diary TYPE datetime;
+DEFINE INDEX IF NOT EXISTS idx_diary_char ON travel_diary FIELDS character_id;
+
+-- ============================================================
+-- BESTIARIO — creature incontrate/sconfitte dal personaggio
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS bestiary_entry SCHEMALESS;
+DEFINE FIELD IF NOT EXISTS character_id        ON bestiary_entry TYPE string;
+DEFINE FIELD IF NOT EXISTS monster_id          ON bestiary_entry TYPE string;
+DEFINE FIELD IF NOT EXISTS name                ON bestiary_entry TYPE string;
+DEFINE FIELD IF NOT EXISTS tier                ON bestiary_entry TYPE string;
+DEFINE FIELD IF NOT EXISTS times_defeated      ON bestiary_entry TYPE int DEFAULT 1;
+DEFINE FIELD IF NOT EXISTS first_encountered   ON bestiary_entry TYPE datetime;
+DEFINE FIELD IF NOT EXISTS description         ON bestiary_entry TYPE string DEFAULT "";
+DEFINE INDEX IF NOT EXISTS idx_bestiary_char ON bestiary_entry FIELDS character_id;
+
+-- ============================================================
+-- NPC — personaggi non giocanti conosciuti dal personaggio
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS npc_instance SCHEMALESS;
+DEFINE FIELD IF NOT EXISTS character_id ON npc_instance TYPE string;
+DEFINE FIELD IF NOT EXISTS name         ON npc_instance TYPE string;
+DEFINE FIELD IF NOT EXISTS role         ON npc_instance TYPE string DEFAULT "";
+DEFINE FIELD IF NOT EXISTS description  ON npc_instance TYPE string DEFAULT "";
+DEFINE FIELD IF NOT EXISTS location     ON npc_instance TYPE string DEFAULT "";
+DEFINE FIELD IF NOT EXISTS disposition  ON npc_instance TYPE string DEFAULT "neutrale"; -- amichevole | neutrale | ostile
+DEFINE FIELD IF NOT EXISTS last_seen    ON npc_instance TYPE datetime;
+DEFINE INDEX IF NOT EXISTS idx_npc_char ON npc_instance FIELDS character_id;

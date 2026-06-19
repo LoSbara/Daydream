@@ -8,6 +8,8 @@ import MapPanel from '../panels/MapPanel.jsx'
 import WorldPanel from '../panels/WorldPanel.jsx'
 import MarketPanel from '../panels/MarketPanel.jsx'
 import SkillTreePanel from '../panels/SkillTreePanel.jsx'
+import CombatPanel from '../panels/CombatPanel.jsx'
+import NPCPanel from '../panels/NPCPanel.jsx'
 
 export const PANELS = {
   chat:      { id: 'chat',      label: 'Chat',        icon: '💬', component: ChatPanel,      minW: 4, minH: 8 },
@@ -20,6 +22,8 @@ export const PANELS = {
   world:     { id: 'world',     label: 'Mondo',       icon: '🌍', component: WorldPanel,     minW: 2, minH: 4 },
   market:    { id: 'market',    label: 'Mercato',     icon: '🏪', component: MarketPanel,    minW: 2, minH: 6 },
   skilltree: { id: 'skilltree', label: 'Albero Skill', icon: '🌳', component: SkillTreePanel, minW: 3, minH: 8 },
+  combat:    { id: 'combat',    label: 'Combattimento', icon: '⚔', component: CombatPanel,  minW: 2, minH: 5 },
+  npcs:      { id: 'npcs',      label: 'NPC',         icon: '👤', component: NPCPanel,       minW: 2, minH: 5 },
 }
 
 // rowHeight=50, cols=12. Numeri pensati per 1080p (area gioco ~900px tall).
@@ -42,11 +46,12 @@ export const PRESETS = {
   },
   combat: {
     lg: [
-      { i: 'chat',      x: 0, y: 4, w: 8, h: 9,  minW: 4, minH: 6 },
-      { i: 'stats',     x: 0, y: 0, w: 5, h: 4,  minW: 2, minH: 3 },
-      { i: 'skill',     x: 5, y: 0, w: 3, h: 4,  minW: 2, minH: 3 },
-      { i: 'inventory', x: 8, y: 0, w: 4, h: 6,  minW: 2, minH: 4 },
-      { i: 'quest',     x: 8, y: 6, w: 4, h: 7,  minW: 2, minH: 4 },
+      { i: 'chat',      x: 0, y: 4, w: 7, h: 9,  minW: 4, minH: 6 },
+      { i: 'stats',     x: 0, y: 0, w: 4, h: 4,  minW: 2, minH: 3 },
+      { i: 'skill',     x: 4, y: 0, w: 3, h: 4,  minW: 2, minH: 3 },
+      { i: 'combat',    x: 7, y: 0, w: 5, h: 6,  minW: 2, minH: 5 },
+      { i: 'inventory', x: 7, y: 6, w: 3, h: 7,  minW: 2, minH: 4 },
+      { i: 'quest',     x: 10, y: 6, w: 2, h: 7, minW: 2, minH: 4 },
     ],
   },
   exploration: {

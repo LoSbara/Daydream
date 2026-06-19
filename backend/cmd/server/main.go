@@ -48,6 +48,13 @@ func main() {
 	}
 	slog.Info("schema applicato")
 
+	// Seed dati meccanici (classi, mostri) — idempotente
+	if err := dbClient.Seed(); err != nil {
+		slog.Warn("seed dati meccanici parzialmente fallito", "err", err)
+	} else {
+		slog.Info("seed dati meccanici completato")
+	}
+
 	// LLM provider
 	llmProvider := buildLLMProvider()
 	slog.Info("LLM provider pronto", "provider", llmProvider.Name(), "model", os.Getenv("LLM_MODEL"))
