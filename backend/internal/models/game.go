@@ -106,16 +106,24 @@ type GMCustomSkill struct {
 	MaxLevel    int    `json:"max_level"`             // livello massimo (0 = usa default 5)
 }
 
+// ContentGenRequest è una richiesta al Content Generator Agent di creare un nuovo documento nella KB.
+type ContentGenRequest struct {
+	Type    string `json:"type"`    // npc | zone | dungeon | lore | quest_context
+	Subject string `json:"subject"` // nome dell'entità da generare, es. "Xander Blackthorn"
+	Context string `json:"context"` // breve descrizione da espandere in un documento completo
+}
+
 // GMResponse è la risposta strutturata del GM AI.
 type GMResponse struct {
-	Narrative    string          `json:"narrative"`
-	ContextMemo  string          `json:"context_memo,omitempty"`
-	StateUpdates *StateUpdate    `json:"state_updates,omitempty"`
-	BattleTags   []string        `json:"battle_tags,omitempty"`
-	UIEvents     []string        `json:"ui_events,omitempty"`
-	WorldFlags   []GMWorldFlag   `json:"world_flags,omitempty"`
-	CustomSkills []GMCustomSkill `json:"custom_skills,omitempty"`
-	ActionCategory string `json:"action_category,omitempty"`
+	Narrative      string               `json:"narrative"`
+	ContextMemo    string               `json:"context_memo,omitempty"`
+	StateUpdates   *StateUpdate         `json:"state_updates,omitempty"`
+	BattleTags     []string             `json:"battle_tags,omitempty"`
+	UIEvents       []string             `json:"ui_events,omitempty"`
+	WorldFlags     []GMWorldFlag        `json:"world_flags,omitempty"`
+	CustomSkills   []GMCustomSkill      `json:"custom_skills,omitempty"`
+	ActionCategory string               `json:"action_category,omitempty"`
+	ContentGen     []ContentGenRequest  `json:"content_gen,omitempty"`
 }
 
 // StateUpdate contiene gli aggiornamenti di stato dal GM.

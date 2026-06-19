@@ -62,6 +62,7 @@ func main() {
 
 	// Embedding provider + RAG (disabilitato di default)
 	var retriever *rag.Retriever
+	var contentGen *agents.ContentGenerator
 	if os.Getenv("EMBED_ENABLED") == "true" {
 		embedDims, _ := strconv.Atoi(os.Getenv("EMBED_DIMENSIONS"))
 		embedProvider := embedding.NewOpenAICompat(
@@ -77,6 +78,9 @@ func main() {
 		if err := seeder.Seed(context.Background()); err != nil {
 			slog.Warn("knowledge_base seeding fallito, RAG degradato", "err", err)
 			retriever = nil
+		} else {
+			contentGen = agents.NewContentGenerator(dbClient, llmProvider, embedProvider, retriever)
+			slog.Info("content generator attivo")
 		}
 	} else {
 		slog.Info("RAG disabilitato (EMBED_ENABLED=true per abilitarlo)")
@@ -93,7 +97,8 @@ func main() {
 
 	// Game engine
 	engine := game.NewEngine(dbClient, llmProvider, skills, retriever).
-		WithAgents(validator, compactor)
+		WithAgents(validator, compactor).
+		WithContentGenerator(contentGen)
 
 	// Player FIFO queue
 	playerQueue := queue.New(engine.AsTurnProcessor())

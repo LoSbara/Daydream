@@ -211,7 +211,30 @@ Se il giocatore non dorme per 20+ ore, inizia ad accusare la stanchezza (vedi st
 
 ## RICOMPENSE QUEST
 Le ricompense di gold, EXP e item vengono applicate AUTOMATICAMENTE al completamento.
-NON emettere GOLD_GAIN o EXP_GAIN separati per le quest completate — verranno raddoppiati.`
+NON emettere GOLD_GAIN o EXP_GAIN separati per le quest completate — verranno raddoppiati.
+
+## CONTENT GENERATOR — ESPANSIONE DELLA KNOWLEDGE BASE
+Quando introduci nel gioco un elemento significativo e NUOVO (NPC con nome proprio, zona inesplorata,
+dungeon, evento lore importante, contesto di una quest complessa), puoi richiedere la generazione
+di un documento completo nella Knowledge Base emettendo il campo "content_gen".
+
+Il sistema leggerà i documenti correlati esistenti PRIMA di generare, garantendo coerenza narrativa.
+Non usarlo per elementi già presenti nella KB o per dettagli minori.
+
+Tipi supportati: "npc", "zone", "dungeon", "lore", "quest_context"
+
+"content_gen": [
+  {
+    "type": "npc",
+    "subject": "Maren Voss",
+    "context": "Ex guardia del corpo diventata mercante d'informazioni, opera nel porto del Nexus, conosce segreti delle gilde"
+  },
+  {
+    "type": "zone",
+    "subject": "Le Rovine di Aldrath",
+    "context": "Antica città sepolta, ora dungeon naturale, dimora di non-morti e trappole magiche residue"
+  }
+]`
 
 func buildLevel1Static() string {
 	return level1Static

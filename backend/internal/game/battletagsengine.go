@@ -263,12 +263,7 @@ func applyStatusTag(tag, seType string, char *models.Character) {
 	}
 	char.StatusEffects = existing
 
-	icon := "✨"
-	color := "#90ee90"
-	if seType == "debuff" {
-		icon = "💀"
-		color = "#ff6b6b"
-	}
+	icon, color := statusEffectStyle(strings.ToUpper(typeName), seType)
 
 	char.StatusEffects = append(char.StatusEffects, models.StatusEffect{
 		ID:             tag,
@@ -472,5 +467,42 @@ func applyEnemyDead(state *models.FullState) *PostEvent {
 	return &PostEvent{
 		Type:    "enemy_dead",
 		Payload: map[string]any{"enemy": enemyName},
+	}
+}
+
+// statusEffectStyle ritorna icona e colore per uno status effect in base al tipo.
+func statusEffectStyle(name, seType string) (icon, color string) {
+	switch name {
+	case "POISON":
+		return "☠", "#7ec850"
+	case "BLEED":
+		return "🩸", "#cc3333"
+	case "BURN":
+		return "🔥", "#e07020"
+	case "STUN":
+		return "⚡", "#e0c030"
+	case "SLOW":
+		return "🐌", "#8888cc"
+	case "BLIND":
+		return "👁", "#666688"
+	case "REGEN", "REGEN_HP":
+		return "💚", "#40cc70"
+	case "REGEN_MP":
+		return "💙", "#4080cc"
+	case "REGEN_STM":
+		return "🟡", "#ccaa20"
+	case "ATK":
+		return "⚔", "#e04040"
+	case "DEF":
+		return "🛡", "#6090cc"
+	case "SHIELD":
+		return "🔵", "#4060bb"
+	case "HASTE":
+		return "💨", "#80e0e0"
+	default:
+		if seType == "debuff" {
+			return "💀", "#ff6b6b"
+		}
+		return "✨", "#90ee90"
 	}
 }

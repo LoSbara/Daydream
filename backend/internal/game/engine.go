@@ -18,12 +18,13 @@ const maxRetries = 2
 
 // Engine è l'orchestratore del turno di gioco.
 type Engine struct {
-	db        *db.Client
-	llm       llm.Provider
-	skills    *SkillRegistry
-	retriever *rag.Retriever    // nil se RAG disabilitato
-	validator *agents.Validator // nil se non configurato
-	compactor *agents.Compactor // nil se non configurato
+	db           *db.Client
+	llm          llm.Provider
+	skills       *SkillRegistry
+	retriever    *rag.Retriever         // nil se RAG disabilitato
+	validator    *agents.Validator      // nil se non configurato
+	compactor    *agents.Compactor      // nil se non configurato
+	contentGen   *agents.ContentGenerator // nil se RAG disabilitato
 }
 
 func NewEngine(database *db.Client, provider llm.Provider, skills *SkillRegistry, retriever *rag.Retriever) *Engine {
@@ -34,6 +35,12 @@ func NewEngine(database *db.Client, provider llm.Provider, skills *SkillRegistry
 func (e *Engine) WithAgents(v *agents.Validator, c *agents.Compactor) *Engine {
 	e.validator = v
 	e.compactor = c
+	return e
+}
+
+// WithContentGenerator configura il Content Generator Agent (richiede RAG abilitato).
+func (e *Engine) WithContentGenerator(cg *agents.ContentGenerator) *Engine {
+	e.contentGen = cg
 	return e
 }
 
@@ -64,8 +71,8 @@ func (e *Engine) ProcessTurn(ctx context.Context, job queue.TurnJob) {
 		return
 	}
 
-	// 2. Pre-elabora
-	e.preProcess(state)
+	// 2. Pre-elabora (cooldown, status effect tick)
+	preEvents := e.preProcess(state)
 
 	// 3. RAG: recupera contesto rilevante dalla knowledge_base
 	var kbEntries []rag.KBEntry
@@ -151,7 +158,8 @@ func (e *Engine) ProcessTurn(ctx context.Context, job queue.TurnJob) {
 	moneyBefore := state.Character.Money
 	postEvents := ApplyBattleTags(gmResponse.BattleTags, state, e.skills)
 
-	// Aggiungi eventi da state_updates (incluso reward quest)
+	// Aggiungi eventi da pre-process (morte da veleno/emorragia) e state_updates
+	postEvents = append(postEvents, preEvents...)
 	postEvents = append(postEvents, stateUpdateEvents...)
 
 	// 6b. Avanza il clock in-game
@@ -265,6 +273,9 @@ func (e *Engine) ProcessTurn(ctx context.Context, job queue.TurnJob) {
 	}
 	if e.compactor != nil {
 		e.compactor.CompactIfNeeded(ctx, state.Session.ID, state.Session.ContextMemo)
+	}
+	if e.contentGen != nil && len(gmResponse.ContentGen) > 0 {
+		e.contentGen.GenerateAsync(ctx, gmResponse.ContentGen, state.Character.ID)
 	}
 
 	// 11. Evento done
@@ -586,8 +597,9 @@ func applyStatsUpdate(state *models.FullState, s *models.StatsUpdate) {
 	}
 }
 
-// preProcess gestisce le operazioni pre-turno: decremento cooldown, status effects.
-func (e *Engine) preProcess(state *models.FullState) {
+// preProcess gestisce le operazioni pre-turno: decremento cooldown e tick degli status effect.
+// Ritorna PostEvent per morti da veleno/emorragia.
+func (e *Engine) preProcess(state *models.FullState) []PostEvent {
 	// Decrementa cooldown skill di 1 turno
 	for k, v := range state.Character.SkillCooldowns {
 		if v <= 1 {
@@ -597,16 +609,55 @@ func (e *Engine) preProcess(state *models.FullState) {
 		}
 	}
 
-	// Decrementa durata status effects
+	// Tick status effect: applica l'effetto, poi decrementa la durata
 	active := state.Character.StatusEffects[:0]
 	for _, se := range state.Character.StatusEffects {
+		tickStatusEffect(&state.Character.Stats, se)
 		se.TurnsRemaining--
 		if se.TurnsRemaining > 0 {
 			active = append(active, se)
 		}
-		// TODO Phase 2: applica effetti per-turno (veleno, regen)
 	}
 	state.Character.StatusEffects = active
+
+	// Morte da status effect (veleno, emorragia, bruciatura)
+	if state.Character.Stats.HP.Current <= 0 {
+		state.Character.Stats.HP.Current = 0
+		state.Session.PendingNarrativeEvents = append(
+			state.Session.PendingNarrativeEvents,
+			"MORTE_STATUS_EFFECT: Il personaggio ha raggiunto 0 HP a causa di un effetto di stato (veleno/emorragia/bruciatura). Narra la morte in modo drammatico. Ignora l'azione che il giocatore stava tentando di fare.",
+		)
+		return []PostEvent{{Type: "player_dead"}}
+	}
+	return nil
+}
+
+// tickStatusEffect applica l'effetto per-turno di uno status effect alle statistiche del personaggio.
+// Gli effetti scalano su maxHP/maxMP/maxSTM per rimanere bilanciati dall'Lv 1 al 100.
+// Effetti narrativi puri (ATK, DEF, SHIELD, STUN, SLOW, BLIND) non hanno tick server-side.
+func tickStatusEffect(stats *models.Stats, se models.StatusEffect) {
+	switch strings.ToUpper(se.Name) {
+	case "POISON":
+		dmg := max(1, stats.HP.Max*5/100)
+		stats.HP.Current = Clamp(stats.HP.Current-dmg, 0, stats.HP.Max)
+	case "BLEED":
+		dmg := max(1, stats.HP.Max*8/100)
+		stats.HP.Current = Clamp(stats.HP.Current-dmg, 0, stats.HP.Max)
+	case "BURN":
+		dmg := max(1, stats.HP.Max*6/100)
+		stats.HP.Current = Clamp(stats.HP.Current-dmg, 0, stats.HP.Max)
+		mpDrain := max(1, stats.MP.Max*4/100)
+		stats.MP.Current = Clamp(stats.MP.Current-mpDrain, 0, stats.MP.Max)
+	case "REGEN", "REGEN_HP":
+		heal := max(1, stats.HP.Max*8/100)
+		stats.HP.Current = Clamp(stats.HP.Current+heal, 0, stats.HP.Max)
+	case "REGEN_MP":
+		regen := max(1, stats.MP.Max*10/100)
+		stats.MP.Current = Clamp(stats.MP.Current+regen, 0, stats.MP.Max)
+	case "REGEN_STM":
+		regen := max(1, stats.STM.Max*10/100)
+		stats.STM.Current = Clamp(stats.STM.Current+regen, 0, stats.STM.Max)
+	}
 }
 
 // loadState carica lo stato completo del personaggio di un utente.
