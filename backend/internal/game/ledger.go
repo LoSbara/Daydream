@@ -21,7 +21,7 @@ type ledgerEntry struct {
 
 // writeLedger persiste un movimento di oro in modo asincrono.
 // Non blocca il turno: gli errori vengono loggati, non propagati.
-func writeLedger(ctx context.Context, database *db.Client, entry ledgerEntry) {
+func writeLedger(ctx context.Context, database db.DBClient, entry ledgerEntry) {
 	go func() {
 		query := fmt.Sprintf(
 			`CREATE transaction_log CONTENT {
@@ -48,7 +48,7 @@ func writeLedger(ctx context.Context, database *db.Client, entry ledgerEntry) {
 
 // recordGoldDelta confronta il saldo prima e dopo un turno e scrive
 // una voce nel ledger se l'oro è cambiato.
-func recordGoldDelta(ctx context.Context, database *db.Client, charID string, turnID, before, after int, source string) {
+func recordGoldDelta(ctx context.Context, database db.DBClient, charID string, turnID, before, after int, source string) {
 	delta := after - before
 	if delta == 0 {
 		return

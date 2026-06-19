@@ -7,7 +7,7 @@ import (
 
 // CheckQuestEscalation controlla tutte le quest attive e avanza
 // l'escalation stage se sono state raggiunte le soglie di tempo.
-func CheckQuestEscalation(sess *models.GameSession, database *db.Client, charID string) {
+func CheckQuestEscalation(sess *models.GameSession, database db.DBClient, charID string) {
 	now := sess.GameTime
 	nowMin := now.TotalMinutes()
 
@@ -57,7 +57,7 @@ func CheckQuestEscalation(sess *models.GameSession, database *db.Client, charID 
 }
 
 // emitQuestFlag upsert un world flag relativo a una quest.
-func emitQuestFlag(database *db.Client, charID, key, value, scope string) {
+func emitQuestFlag(database db.DBClient, charID, key, value, scope string) {
 	if database == nil {
 		return
 	}

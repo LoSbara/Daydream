@@ -21,10 +21,10 @@ type ValidationScore struct {
 
 // Validator valuta la qualità della risposta GM dopo ogni turno, in modo asincrono.
 type Validator struct {
-	db *db.Client
+	db db.DBClient
 }
 
-func NewValidator(database *db.Client) *Validator {
+func NewValidator(database db.DBClient) *Validator {
 	return &Validator{db: database}
 }
 

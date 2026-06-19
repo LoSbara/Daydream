@@ -12,13 +12,13 @@ import (
 
 // Handler raccoglie le dipendenze condivise tra tutti gli handler.
 type Handler struct {
-	DB     *db.Client
+	DB     db.DBClient
 	Queue  *queue.PlayerQueue
 	Skills *game.SkillRegistry
 	Hub    *ws.Hub
 }
 
-func NewRouter(dbClient *db.Client, playerQueue *queue.PlayerQueue, skills *game.SkillRegistry, hub *ws.Hub) *gin.Engine {
+func NewRouter(dbClient db.DBClient, playerQueue *queue.PlayerQueue, skills *game.SkillRegistry, hub *ws.Hub) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{

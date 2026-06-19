@@ -11,7 +11,7 @@ import (
 
 // UpsertWorldFlags salva o aggiorna i flag del GM nel DB.
 // Usa INSERT ... ON DUPLICATE KEY per comportamento upsert via query SurrealQL inline.
-func UpsertWorldFlags(database *db.Client, charID string, flags []models.GMWorldFlag) {
+func UpsertWorldFlags(database db.DBClient, charID string, flags []models.GMWorldFlag) {
 	for _, f := range flags {
 		scope := normalizeScope(f.Scope)
 		key := normalizeScope(f.Key)
@@ -36,7 +36,7 @@ func UpsertWorldFlags(database *db.Client, charID string, flags []models.GMWorld
 // LoadRelevantFlags carica i flag rilevanti per il turno corrente.
 // Priorità: world, kingdom:*, faction:*, city:currentLocation, dungeon:currentDungeon, npc (ultimi 8).
 // Massimo 30 flag totali.
-func LoadRelevantFlags(database *db.Client, charID, location, dungeonName string) []models.WorldFlag {
+func LoadRelevantFlags(database db.DBClient, charID, location, dungeonName string) []models.WorldFlag {
 	cityScope := "city:" + normalizeScope(location)
 	dungeonScope := "dungeon:" + normalizeScope(dungeonName)
 

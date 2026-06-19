@@ -17,7 +17,7 @@ const maxRetries = 2
 
 // Engine è l'orchestratore del turno di gioco.
 type Engine struct {
-	db           *db.Client
+	db           db.DBClient
 	llm          llm.Provider
 	skills       *SkillRegistry
 	retriever    *rag.Retriever         // nil se RAG disabilitato
@@ -26,7 +26,7 @@ type Engine struct {
 	contentGen   *agents.ContentGenerator // nil se RAG disabilitato
 }
 
-func NewEngine(database *db.Client, provider llm.Provider, skills *SkillRegistry, retriever *rag.Retriever) *Engine {
+func NewEngine(database db.DBClient, provider llm.Provider, skills *SkillRegistry, retriever *rag.Retriever) *Engine {
 	return &Engine{db: database, llm: provider, skills: skills, retriever: retriever}
 }
 
@@ -256,6 +256,8 @@ func (e *Engine) ProcessTurn(ctx context.Context, job queue.TurnJob) {
 			lootResult = &loot
 		case "overdrive":
 			overdrive = true
+		case "gold_blocked":
+			serverUIEvents = append(serverUIEvents, "GOLD_LOSE_BLOCKED")
 		case "player_dead":
 			playerDied = true
 			serverUIEvents = append(serverUIEvents, "DEATH")

@@ -74,6 +74,7 @@ func ApplyBattleTags(tags []string, state *models.FullState, skills *SkillRegist
 					"tag", tag,
 					"turn", state.Session.TurnID,
 					"cooldown_until", state.Session.GoldLoseCooldownUntil)
+				events = append(events, PostEvent{Type: "gold_blocked", Payload: amount})
 				break
 			}
 			state.Character.Money = Clamp(state.Character.Money-amount, 0, 99999999)

@@ -18,13 +18,13 @@ import (
 // Prima di generare, interroga la KB per il contesto correlato, garantendo coerenza
 // tra ciò che è già scritto e il nuovo contenuto.
 type ContentGenerator struct {
-	db        *db.Client
+	db        db.DBClient
 	llm       llm.Provider
 	embed     embedding.Provider
 	retriever *rag.Retriever
 }
 
-func NewContentGenerator(database *db.Client, provider llm.Provider, embedder embedding.Provider, retriever *rag.Retriever) *ContentGenerator {
+func NewContentGenerator(database db.DBClient, provider llm.Provider, embedder embedding.Provider, retriever *rag.Retriever) *ContentGenerator {
 	return &ContentGenerator{
 		db:        database,
 		llm:       provider,

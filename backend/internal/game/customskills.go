@@ -10,7 +10,7 @@ import (
 )
 
 // SaveCustomSkills aggiunge nuove custom skill al personaggio (no duplicati per ID).
-func SaveCustomSkills(database *db.Client, charID string, newSkills []models.GMCustomSkill) {
+func SaveCustomSkills(database db.DBClient, charID string, newSkills []models.GMCustomSkill) {
 	// Prima carica le skill esistenti
 	qr, err := database.QueryOne(
 		"SELECT custom_skills FROM character WHERE id=$id",

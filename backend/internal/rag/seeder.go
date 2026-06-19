@@ -23,11 +23,11 @@ type SeedEntry struct {
 
 // Seeder carica i documenti lore nella knowledge_base con embedding.
 type Seeder struct {
-	db    *db.Client
+	db    db.DBClient
 	embed embedding.Provider
 }
 
-func NewSeeder(database *db.Client, embedder embedding.Provider) *Seeder {
+func NewSeeder(database db.DBClient, embedder embedding.Provider) *Seeder {
 	return &Seeder{db: database, embed: embedder}
 }
 

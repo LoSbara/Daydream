@@ -14,6 +14,20 @@ import (
 
 var ErrNotFound = errors.New("record not found")
 
+// DBClient è il contratto minimo per l'accesso al database.
+// Implementato da *Client; tutte le dipendenze interne usano questa interfaccia
+// così che i test possano iniettare un mock senza un'istanza SurrealDB reale.
+type DBClient interface {
+	Query(sql string, vars map[string]any) ([]QueryResult, error)
+	QueryOne(sql string, vars map[string]any) (QueryResult, error)
+	Exec(sql string, vars map[string]any) error
+	UpdateRecord(recordID string, data any) error
+	CreateRecord(table string, data any, result any) error
+}
+
+// compile-time check: *Client deve soddisfare DBClient.
+var _ DBClient = (*Client)(nil)
+
 // Client è un thin wrapper sull'HTTP API di SurrealDB.
 // Non usa l'SDK Go ufficiale per evitare dipendenze da breaking changes del SDK.
 type Client struct {

@@ -20,11 +20,11 @@ type KBEntry struct {
 // Retriever esegue hybrid search sulla knowledge_base:
 // HNSW (cosine similarity) + BM25 fulltext, risultati mergiati con RRF.
 type Retriever struct {
-	db    *db.Client
+	db    db.DBClient
 	embed embedding.Provider
 }
 
-func NewRetriever(database *db.Client, embedder embedding.Provider) *Retriever {
+func NewRetriever(database db.DBClient, embedder embedding.Provider) *Retriever {
 	return &Retriever{db: database, embed: embedder}
 }
 

@@ -13,11 +13,11 @@ const compactThreshold = 3200 // ~800 token
 
 // Compactor comprime context_memo quando supera la soglia, in modo asincrono.
 type Compactor struct {
-	db  *db.Client
+	db  db.DBClient
 	llm llm.Provider
 }
 
-func NewCompactor(database *db.Client, provider llm.Provider) *Compactor {
+func NewCompactor(database db.DBClient, provider llm.Provider) *Compactor {
 	return &Compactor{db: database, llm: provider}
 }
 

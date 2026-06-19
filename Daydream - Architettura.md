@@ -2,7 +2,7 @@
 
 > Documento di design: analisi critica della specifica + architettura finale + roadmap.  
 > Basato su: spec originale "Overflow/Aether Horizon", esperienza dal prototipo Shanfro/server.js (~1900 righe).  
-> Data: 2026-06-17 | Aggiornato: 2026-06-19
+> Data: 2026-06-17 | Aggiornato: 2026-06-19 (Fase 10 consolidamento)
 1
 ---
 
@@ -136,11 +136,11 @@ Stack UI:
 ### 2.4 Embedding e LLM
 
 **LLM**: adapter layer LLM-agnostic con interfaccia comune. Provider configurabili:
-- OpenAI-compatible (OpenAI, DeepSeek, Groq, Ollama)
+- OpenAI-compatible (OpenAI, DeepSeek, Groq)
 - Anthropic Claude API
 - Google Gemini API
 
-**Embedding**: `nomic-embed-text` via Ollama per uso locale (768 dim) **oppure** `text-embedding-3-small` OpenAI (1536 dim) per cloud. Selezionabile da config.
+**Embedding**: `jina-embeddings-v3` via Jina AI (768 dim) oppure `text-embedding-3-small` OpenAI (1536 dim). Selezionabile da config via `EMBED_PROVIDER`.
 
 ### 2.5 Comunicazione Real-time
 
@@ -174,7 +174,7 @@ Stack UI:
                     │  │  Turn Engine  │  │     ┌─────────────────────┐
                     │  │  (state mach.)│──┼────►│  LLM Adapter Layer  │
                     │  └───────────────┘  │     │  (OpenAI/Anthropic/ │
-                    │  ┌───────────────┐  │     │   Gemini/Ollama)    │
+                    │  ┌───────────────┐  │     │   Gemini)           │
                     │  │  Battle Tags  │  │     └─────────────────────┘
                     │  │  Engine       │  │
                     │  └───────────────┘  │     ┌─────────────────────┐
@@ -541,18 +541,26 @@ aether-horizon/
 │   │   ├── jwt.go            # generate/validate JWT
 │   │   └── middleware.go     # Gin middleware auth
 │   ├── db/
-│   │   ├── client.go         # SurrealDB connection pool
+│   │   ├── client.go         # SurrealDB client + DBClient interface + QueryOne()
 │   │   ├── migrate.go        # schema migrations
 │   │   └── queries/          # SurrealQL queries come string constants
 │   ├── game/
-│   │   ├── engine.go         # orchestratore turno (i 15 step del flusso)
-│   │   ├── statemachine.go   # game state machine con transizioni validate
-│   │   ├── battletagsengine.go # processBattleTags() — fonte di verità meccanica
-│   │   ├── formulas.go       # danno, schivata, critico, analisi
-│   │   ├── levelup.go        # checkLevelUp, checkSkillUnlocks, checkTitles
-│   │   ├── questengine.go    # checkQuestProgress
-│   │   ├── gameover.go       # respawn logic
-│   │   └── inventory.go      # equip, unequip, craft, enhance, appraise
+│   │   ├── engine.go             # orchestratore turno (i 15 step del flusso)
+│   │   ├── responseparser.go     # parseGMResponse(), narrativeExtractor streaming
+│   │   ├── stateapplicator.go    # applyStateUpdates(), applyStatsUpdate(), normalizeSession()
+│   │   ├── statemachine.go       # game state machine con transizioni validate
+│   │   ├── battletagsengine.go   # processBattleTags() — fonte di verità meccanica
+│   │   ├── formulas.go           # danno, schivata, critico, analisi, Clamp(), ExperienceToNextLevel()
+│   │   ├── levelup.go            # checkLevelUp, checkSkillUnlocks, checkTitles
+│   │   ├── questengine.go        # checkQuestProgress
+│   │   ├── questbalancer.go      # BalanceQuest() — cap gold/exp, deadline, escalations
+│   │   ├── questescalation.go    # CheckQuestEscalation() — world flag automatici per scadenza
+│   │   ├── flagengine.go         # UpsertWorldFlags(), LoadRelevantFlags()
+│   │   ├── timecalculator.go     # AdvanceTime(), ApplySleepDeprivation()
+│   │   ├── customskills.go       # SaveCustomSkills(), UpgradeCustomSkill()
+│   │   ├── ledger.go             # writeLedger(), recordGoldDelta() async
+│   │   ├── gameover.go           # respawn logic
+│   │   └── inventory.go          # equip, unequip, craft, enhance, appraise
 │   ├── llm/
 │   │   ├── adapter.go        # interfaccia LLMProvider {Chat, Stream, Embed}
 │   │   ├── openai.go         # provider OpenAI-compatible
@@ -628,7 +636,6 @@ Il `schema *JSONSchema` è il parametro per structured output (JSON mode). Ogni 
 - OpenAI: `response_format: {type: "json_schema", json_schema: schema}`
 - Anthropic: prefilling `{"` + system prompt con schema esplicito
 - Gemini: `generation_config.response_mime_type: "application/json"` + schema
-- Ollama: `format: schema` (structured output nativo)
 
 ### 5.3 FIFO Queue Per-Player
 
@@ -1352,6 +1359,52 @@ Al completamento quest (GM emette `complete: "quest_id"`):
 
 ---
 
+---
+
+### Fase 10 — Consolidamento Tecnico ✅ COMPLETATA
+
+#### 10.1 Interfaccia `db.DBClient`
+Tutti i componenti (engine, agenti, RAG, seeder, router) usano l'interfaccia `db.DBClient` invece del tipo concreto `*db.Client`. Questo abilita dependency injection e futuro testing con mock senza SurrealDB reale.
+
+```go
+type DBClient interface {
+    Query(sql string, vars map[string]any) ([]QueryResult, error)
+    QueryOne(sql string, vars map[string]any) (QueryResult, error)  // safe wrapper per results[0]
+    Exec(sql string, vars map[string]any) error
+    UpdateRecord(recordID string, data any) error
+    CreateRecord(table string, data any, result any) error
+}
+```
+
+`QueryOne` è il wrapper sicuro per accessi `results[0]`: restituisce il primo `QueryResult` oppure un risultato vuoto con status OK se il risultato è vuoto (mai panic).
+
+#### 10.2 Crash Safety nelle Goroutine
+Tutti gli agent asincroni (Compactor, Validator, ContentGenerator) wrappano il corpo della goroutine in `recover()`. Un panic in un agente non abbatte il server.
+
+#### 10.3 Estrazione da engine.go (God Object → file specializzati)
+Il file `engine.go` è passato da ~726 a ~484 righe tramite estrazione di due file dedicati:
+- `responseparser.go` — parsing streaming risposta GM (`narrativeExtractor`, `parseGMResponse`)
+- `stateapplicator.go` — applicazione aggiornamenti stato (`applyStateUpdates`, `applyStatsUpdate`, `applyQuestUpdate`, `applyQuestRewards`, `normalizeSession`)
+
+#### 10.4 GOLD_LOSE UX Feedback
+Il cooldown anti-duplicazione di `GOLD_LOSE` (blocca transazioni duplicate per 2 turni) ora emette un `PostEvent{Type: "gold_blocked"}` che viene tradotto in `GOLD_LOSE_BLOCKED` UI event e recapitato al frontend come toast informativo.
+
+#### 10.5 Test Suite
+Suite di test unitari table-driven (standard `testing`, zero dipendenze esterne):
+
+| File | Test | Cosa copre |
+|---|---|---|
+| `engine_test.go` | 16 | `parseGMResponse` (7 casi edge), `tickStatusEffect` (9 effetti) |
+| `battletagsengine_test.go` | 18 | GOLD, HP, EXP, level-up, near-death, cooldown, PLAYER_DEAD, LOOT_DROP, Dodge, Crit |
+| `timecalculator_test.go` | 7 | categorie note, bonus combat, exploration dungeon, inferenza |
+| `formulas_test.go` | 11 | Clamp (5), ExperienceToNextLevel (4), ComputeMaxHP/MP/STM (6) |
+| `questbalancer_test.go` | 9 | gold cap, exp cap, difficulty clamp, deadline, escalations, nil safety |
+
+#### 10.6 CI/CD GitHub Actions
+File `.github/workflows/test.yml`: esegue `go build ./...` + `go test ./... -count=1 -timeout 60s` su ogni push e pull request, con cache `go.sum`.
+
+---
+
 ## Appendice A — Dipendenze Go principali
 
 ```go
@@ -1411,7 +1464,7 @@ JWT_SECRET=<random 64 byte hex>
 JWT_EXPIRY=24h
 
 # LLM
-LLM_PROVIDER=openai              # openai | anthropic | gemini | ollama
+LLM_PROVIDER=openai              # openai | anthropic | gemini
 LLM_API_KEY=<api_key>
 LLM_BASE_URL=https://api.openai.com/v1  # per openai-compatible
 LLM_MODEL=gpt-4o-mini
