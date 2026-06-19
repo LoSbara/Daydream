@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"daydream/internal/agents"
 	"daydream/internal/auth"
 	"daydream/internal/db"
 	"daydream/internal/game"
@@ -12,13 +13,19 @@ import (
 
 // Handler raccoglie le dipendenze condivise tra tutti gli handler.
 type Handler struct {
-	DB     db.DBClient
-	Queue  *queue.PlayerQueue
-	Skills *game.SkillRegistry
-	Hub    *ws.Hub
+	DB         db.DBClient
+	Queue      *queue.PlayerQueue
+	Skills     *game.SkillRegistry
+	Hub        *ws.Hub
+	DungeonGen *agents.DungeonGenerator // nil se non configurato
 }
 
-func NewRouter(dbClient db.DBClient, playerQueue *queue.PlayerQueue, skills *game.SkillRegistry, hub *ws.Hub) *gin.Engine {
+// WithDungeonGenerator è un'opzione funzionale per configurare il DungeonGenerator.
+func WithDungeonGenerator(dg *agents.DungeonGenerator) func(*Handler) {
+	return func(h *Handler) { h.DungeonGen = dg }
+}
+
+func NewRouter(dbClient db.DBClient, playerQueue *queue.PlayerQueue, skills *game.SkillRegistry, hub *ws.Hub, opts ...func(*Handler)) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -29,6 +36,9 @@ func NewRouter(dbClient db.DBClient, playerQueue *queue.PlayerQueue, skills *gam
 	}))
 
 	h := &Handler{DB: dbClient, Queue: playerQueue, Skills: skills, Hub: hub}
+	for _, opt := range opts {
+		opt(h)
+	}
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

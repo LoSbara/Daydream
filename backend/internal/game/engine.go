@@ -125,9 +125,35 @@ func (e *Engine) ProcessTurn(ctx context.Context, job queue.TurnJob) {
 	_ = fullNarrative
 
 	// 5. Applica state_updates
+	oldLocation := state.Session.Location
 	var stateUpdateEvents []PostEvent
 	if gmResponse.StateUpdates != nil {
 		stateUpdateEvents = applyStateUpdates(state, gmResponse.StateUpdates, e.skills)
+	}
+
+	// 5b. Auto-trigger content generation su eventi significativi (asincrono, non blocca)
+	if e.contentGen != nil {
+		var autoReqs []models.ContentGenRequest
+		if newLoc := state.Session.Location; newLoc != oldLocation && newLoc != "" {
+			autoReqs = append(autoReqs, models.ContentGenRequest{
+				Type:    "zone",
+				Subject: newLoc,
+				Context: "Zona del mondo di Daydream appena raggiunta dal personaggio",
+			})
+		}
+		if gmResponse.StateUpdates != nil &&
+			gmResponse.StateUpdates.Quests != nil &&
+			gmResponse.StateUpdates.Quests.Start != nil {
+			q := gmResponse.StateUpdates.Quests.Start
+			autoReqs = append(autoReqs, models.ContentGenRequest{
+				Type:    "quest_context",
+				Subject: q.Title,
+				Context: q.Description,
+			})
+		}
+		if len(autoReqs) > 0 {
+			e.contentGen.GenerateAsync(ctx, autoReqs, state.Character.ID)
+		}
 	}
 	if gmResponse.ContextMemo != "" {
 		memo := gmResponse.ContextMemo

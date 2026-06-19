@@ -4,6 +4,7 @@ import InventoryPanel from '../panels/InventoryPanel.jsx'
 import SkillPanel from '../panels/SkillPanel.jsx'
 import QuestPanel from '../panels/QuestPanel.jsx'
 import DungeonPanel from '../panels/DungeonPanel.jsx'
+import MapPanel from '../panels/MapPanel.jsx'
 import WorldPanel from '../panels/WorldPanel.jsx'
 import MarketPanel from '../panels/MarketPanel.jsx'
 import SkillTreePanel from '../panels/SkillTreePanel.jsx'
@@ -15,6 +16,7 @@ export const PANELS = {
   skill:     { id: 'skill',     label: 'Skill',       icon: '⚡', component: SkillPanel,     minW: 2, minH: 4 },
   quest:     { id: 'quest',     label: 'Quest',       icon: '📜', component: QuestPanel,     minW: 2, minH: 4 },
   dungeon:   { id: 'dungeon',   label: 'Dungeon',     icon: '🗺', component: DungeonPanel,   minW: 3, minH: 5 },
+  map:       { id: 'map',       label: 'Mappa',       icon: '🧭', component: MapPanel,       minW: 3, minH: 6 },
   world:     { id: 'world',     label: 'Mondo',       icon: '🌍', component: WorldPanel,     minW: 2, minH: 4 },
   market:    { id: 'market',    label: 'Mercato',     icon: '🏪', component: MarketPanel,    minW: 2, minH: 6 },
   skilltree: { id: 'skilltree', label: 'Albero Skill', icon: '🌳', component: SkillTreePanel, minW: 3, minH: 8 },
@@ -59,9 +61,8 @@ export const PRESETS = {
   dungeon: {
     lg: [
       { i: 'chat',    x: 0, y: 0, w: 6, h: 13, minW: 4, minH: 8 },
-      { i: 'dungeon', x: 6, y: 0, w: 6, h: 7,  minW: 3, minH: 5 },
-      { i: 'stats',   x: 6, y: 7, w: 3, h: 6,  minW: 2, minH: 5 },
-      { i: 'skill',   x: 9, y: 7, w: 3, h: 6,  minW: 2, minH: 4 },
+      { i: 'dungeon', x: 6, y: 0, w: 6, h: 5,  minW: 3, minH: 5 },
+      { i: 'map',     x: 6, y: 5, w: 6, h: 8,  minW: 3, minH: 6 },
     ],
   },
 }

@@ -56,6 +56,11 @@ func (h *Handler) EnterDungeon(c *gin.Context) {
 	}
 	dungeon.EnteredAt = sess.TurnID
 
+	// Arricchisce nomi e descrizioni con l'AI (blocking, 12s max, fallback al contenuto statico)
+	if h.DungeonGen != nil {
+		h.DungeonGen.EnrichRooms(c.Request.Context(), dungeon.Name, dungeon.Difficulty, dungeon.Rooms)
+	}
+
 	sess.ActiveDungeon = dungeon
 	sess.GameState = models.StateDungeonExplore
 	sess.ZoneType = "dungeon"

@@ -86,6 +86,10 @@ func main() {
 		slog.Info("RAG disabilitato (EMBED_ENABLED=true per abilitarlo)")
 	}
 
+	// Dungeon Generator — richiede solo il provider LLM, sempre attivo
+	dungeonGen := agents.NewDungeonGenerator(llmProvider)
+	slog.Info("dungeon generator attivo")
+
 	// WebSocket hub
 	hub := ws.NewHub()
 	go hub.Run()
@@ -104,7 +108,9 @@ func main() {
 	playerQueue := queue.New(engine.AsTurnProcessor())
 
 	// Router Gin
-	router := api.NewRouter(dbClient, playerQueue, skills, hub)
+	router := api.NewRouter(dbClient, playerQueue, skills, hub,
+		api.WithDungeonGenerator(dungeonGen),
+	)
 
 	port := os.Getenv("PORT")
 	if port == "" {
